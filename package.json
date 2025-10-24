@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/subash43e/expense-tracker#readme",
   "dependencies": {
-    "commander": "^14.0.1"
+    "commander": "^14.0.1",
+    "easy-table": "^1.2.0"
   }
 }

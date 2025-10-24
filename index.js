@@ -3,6 +3,7 @@
 const { program } = require('commander');
 const { readdirSync, writeFileSync, readFileSync } = require("node:fs");
 const { join } = require('node:path');
+const Table = require("easy-table");
 
 const files = readdirSync(__dirname, { withFileTypes: true });
 const checkingStoregeFile = files.find(file => file.name === 'db.json');
@@ -14,8 +15,6 @@ if (!checkingStoregeFile?.isFile) {
     console.log("File its not exist, Creating new file.")
 
 }
-
-
 
 program
     .version('1.0.0')
@@ -38,10 +37,10 @@ program
             writeFileSync('db.json', readedData, 'utf8');
         }
         const data = JSON.parse(readedData);
-        const date = new Date()
+        const date = new Date();
         const newExpense = {
             id: data.length + 1,
-            date: date,
+            date: date.toLocaleDateString(),
             description: options.description,
             amount,
         };
@@ -54,10 +53,57 @@ program
     .command('list')
     .description('List all expenses')
     .action(() => {
+        const t = new Table
         let readedData = readFileSync("db.json", "utf8");
         const data = JSON.parse(readedData);
-        console.log(data)
-
+        data.forEach(e => {
+            t.cell("Id", e.id)
+            t.cell("Date", e.date)
+            t.cell("Description", e.description)
+            t.cell("Amount", e.amount)
+            t.newRow();
+        });
+        console.log(t.toString());
     });
+program
+    .command('summary')
+    .description('total expense')
+    .option('-m, --month <number>', 'Filter by month')
+    .action((options) => {
+        let readedData = readFileSync("db.json", "utf8");
+        const data = JSON.parse(readedData);
+        let filterData = data;
+        if (options.month) {
+            filterData = data.filter(e => {
+                const date = new Date(e.date);
+                return date.getMonth() + 1 == options.month;
+            })
+        }
+        const totalAmount = filterData.reduce((sum, item) => {
+            return sum + item.amount;
+        }, 0);
 
+        if (options.month) {
+            console.log(`# Total expenses for month ${options.month}: $${totalAmount}`);
+        } else {
+            console.log(`# Total expenses: $${totalAmount}`);
+        }
+    })
+
+
+program
+    .command('delete')
+    .description('delete expenses')
+    .requiredOption('-i, --id <number>', 'Deleting id')
+    .action((options) => {
+        let readedData = readFileSync("db.json", "utf8");
+        const data = JSON.parse(readedData);
+
+        const isTaskAvailable = data.find(d => d.id == options.id);
+        if (isTaskAvailable) {
+            const newdata = data.filter(d => d.id != options.id);
+            writeFileSync("db.json", JSON.stringify(newdata), "utf8");
+            console.log(` Deleted task id:${options.id}`)
+        } else { console.log(`Its already deleted ID:${options.id}`) }
+    })
 program.parse(process.argv);
